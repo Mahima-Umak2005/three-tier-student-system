@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Student Records</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3F6F8; --card:#FFFFFF; --ink:#16202A; --muted:#5B6B79; --rule:#D5DEE5;
+  --accent:#2F3FBF; --accent-ink:#FFFFFF; --ok:#17794A; --bad:#B42318; --row:#EDF1F5;
+  --r:6px;
+}
+@media (prefers-color-scheme:dark){
+  :root{--paper:#0F161D;--card:#17212B;--ink:#E8EEF3;--muted:#93A4B3;--rule:#2A3947;--accent:#7C8CFF;--accent-ink:#0F161D;--ok:#4CC38A;--bad:#FF8A80;--row:#1C2834}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.5 "Public Sans",system-ui,sans-serif}
+h1,h2{font-family:"Bricolage Grotesque","Public Sans",sans-serif;margin:0;letter-spacing:-.01em}
+.wrap{max-width:1100px;margin:0 auto;padding:28px 20px 60px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:24px}
+h1{font-size:34px;font-weight:700}
+.count{color:var(--muted);font-size:14px}
+main{display:grid;grid-template-columns:320px 1fr;gap:24px;align-items:start}
+@media(max-width:820px){main{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:var(--r);padding:20px}
+h2{font-size:20px;margin-bottom:14px}
+label{display:block;font-weight:500;font-size:13px;margin:12px 0 4px}
+input{width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:var(--r);background:var(--paper);color:var(--ink);font:inherit}
+input:disabled{opacity:.6}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{font:inherit;font-weight:600;border-radius:var(--r);padding:9px 14px;cursor:pointer;border:1px solid var(--ink);background:transparent;color:var(--ink)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.danger{border-color:var(--bad);color:var(--bad)}
+button.small{padding:4px 10px;font-size:13px}
+.actions{display:flex;gap:8px;margin-top:18px}
+.search{display:flex;gap:8px;margin-bottom:14px}
+.search input{flex:1}
+.tablebox{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:var(--muted);border-bottom:2px solid var(--rule);padding:8px 10px;white-space:nowrap}
+td{padding:10px;border-bottom:1px solid var(--rule);vertical-align:middle}
+tbody tr:hover{background:var(--row)}
+td.id{font-weight:600;white-space:nowrap}
+td.acts{white-space:nowrap;text-align:right}
+td.acts button{margin-left:6px}
+.empty{padding:28px 10px;color:var(--muted)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);padding:10px 16px;border-radius:var(--r);background:var(--ink);color:var(--paper);font-weight:500;display:none;max-width:90vw}
+#toast.ok{background:var(--ok);color:#fff}#toast.bad{background:var(--bad);color:#fff}
+@media(prefers-reduced-motion:no-preference){#toast{transition:opacity .2s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Student Records</h1>
+    <span class="count" id="count" aria-live="polite"></span>
+  </header>
+
+  <main>
+    <section class="panel" aria-labelledby="formTitle">
+      <h2 id="formTitle">Add student</h2>
+      <div id="f">
+        <label for="studentId">Student ID</label>
+        <input id="studentId" placeholder="ST101" maxlength="20">
+        <label for="name">Full name</label>
+        <input id="name" placeholder="Rahul Sharma" maxlength="100">
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="rahul@example.com">
+        <label for="department">Department</label>
+        <input id="department" placeholder="Computer Science" maxlength="100">
+        <div class="row2">
+          <div><label for="semester">Semester</label><input id="semester" type="number" min="1" max="12" placeholder="5"></div>
+          <div><label for="contact">Contact</label><input id="contact" inputmode="numeric" maxlength="10" placeholder="9876543210"></div>
+        </div>
+        <div class="actions">
+          <button class="primary" id="save">Add student</button>
+          <button id="cancel" hidden>Cancel edit</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="listTitle">
+      <h2 id="listTitle">All students</h2>
+      <div class="search">
+        <input id="q" type="search" placeholder="Search by ID, name, email or department" aria-label="Search students">
+        <button id="clear">Clear</button>
+      </div>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Department</th><th>Sem</th><th>Contact</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+<div id="toast" role="status"></div>
+
+<script src="config.js"></script>
+<script>
+const API = (window.API_BASE_URL || "").replace(/\/$/, "") + "/api/students";
+const $ = (id) => document.getElementById(id);
+const fields = ["studentId","name","email","department","semester","contact"];
+let editing = null, timer;
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function toast(msg, kind){
+  const t = $("toast"); t.textContent = msg; t.className = kind; t.style.display = "block";
+  clearTimeout(timer); timer = setTimeout(() => t.style.display = "none", 3500);
+}
+
+async function api(path = "", method = "GET", body){
+  try{
+    const r = await fetch(API + path, {method, headers:{"Content-Type":"application/json"}, body: body ? JSON.stringify(body) : undefined});
+    const j = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(j.message || "Request failed");
+    return j;
+  }catch(e){
+    throw new Error(e.message === "Failed to fetch" ? "Cannot reach the server. It may be waking up; try again in a moment." : e.message);
+  }
+}
+
+async function load(){
+  const q = $("q").value.trim();
+  $("rows").innerHTML = '<tr><td colspan="7" class="empty">Loading…</td></tr>';
+  try{
+    const j = await api(q ? "?search=" + encodeURIComponent(q) : "");
+    $("count").textContent = j.count + (j.count === 1 ? " student" : " students");
+    $("rows").innerHTML = j.data.length ? j.data.map((s) => `
+      <tr>
+        <td class="id">${esc(s.studentId)}</td><td>${esc(s.name)}</td><td>${esc(s.email)}</td>
+        <td>${esc(s.department)}</td><td>${esc(s.semester)}</td><td>${esc(s.contact)}</td>
+        <td class="acts">
+          <button class="small" data-edit="${esc(s.studentId)}">Edit</button>
+          <button class="small danger" data-del="${esc(s.studentId)}">Delete</button>
+        </td></tr>`).join("")
+      : `<tr><td colspan="7" class="empty">${q ? "No students match that search." : "No students yet. Add the first one using the form."}</td></tr>`;
+  }catch(e){
+    $("rows").innerHTML = `<tr><td colspan="7" class="empty">${esc(e.message)}</td></tr>`;
+  }
+}
+
+function resetForm(){
+  editing = null;
+  fields.forEach((f) => $(f).value = "");
+  $("studentId").disabled = false;
+  $("formTitle").textContent = "Add student";
+  $("save").textContent = "Add student";
+  $("cancel").hidden = true;
+}
+
+async function save(){
+  const b = Object.fromEntries(fields.map((f) => [f, $(f).value.trim()]));
+  if(!b.studentId || !b.name || !b.email || !b.department || !b.semester) return toast("Fill in ID, name, email, department and semester.", "bad");
+  b.semester = Number(b.semester);
+  if(!b.contact) delete b.contact;
+  try{
+    const j = editing ? await api("/" + encodeURIComponent(editing), "PUT", b) : await api("", "POST", b);
+    toast(j.message, "ok"); resetForm(); load();
+  }catch(e){ toast(e.message, "bad"); }
+}
+
+$("save").onclick = save;
+$("cancel").onclick = resetForm;
+$("clear").onclick = () => { $("q").value = ""; load(); };
+$("q").oninput = () => { clearTimeout($("q")._t); $("q")._t = setTimeout(load, 300); };
+
+$("rows").onclick = async (e) => {
+  const id = e.target.dataset.edit, del = e.target.dataset.del;
+  if(id){
+    try{
+      const s = (await api("/" + encodeURIComponent(id))).data;
+      fields.forEach((f) => $(f).value = s[f] ?? "");
+      editing = s.studentId; $("studentId").disabled = true;
+      $("formTitle").textContent = "Edit " + s.studentId;
+      $("save").textContent = "Save changes"; $("cancel").hidden = false;
+      $("name").focus();
+    }catch(err){ toast(err.message, "bad"); }
+  }
+  if(del && confirm("Delete student " + del + "? This cannot be undone.")){
+    try{ toast((await api("/" + encodeURIComponent(del), "DELETE")).message, "ok"); if(editing === del) resetForm(); load(); }
+    catch(err){ toast(err.message, "bad"); }
+  }
+};
+
+load();
+</script>
+</body>
+</html>
