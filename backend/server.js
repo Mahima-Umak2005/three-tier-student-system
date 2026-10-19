@@ -25,10 +25,13 @@ app.use(helmet());
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowed.includes(origin.replace(/\/+$/, ""))) {
+      const normalizedOrigin = origin ? origin.replace(/\/+$/, "") : "";
+
+      if (!origin || allowed.includes(normalizedOrigin)) {
         return callback(null, true);
       }
 
+      console.error("Blocked CORS origin:", origin);
       return callback(new Error("Not allowed by CORS"));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -45,3 +48,42 @@ app.use(
     max: 120,
   }),
 );
+
+// Health check
+app.get("/", (_req, res) => {
+  res.json({ status: "ok", service: "student-api" });
+});
+
+// Student API routes
+app.use("/api/students", require("./routes/studentRoutes"));
+
+// 404 handler
+app.use((_req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+  });
+});
+
+// Error handler
+app.use((err, _req, res, _next) => {
+  const isCorsError = err.message === "Not allowed by CORS";
+
+  res.status(isCorsError ? 403 : 500).json({
+    success: false,
+    message: isCorsError ? "Origin not allowed" : "Server error",
+  });
+});
+
+const PORT = process.env.PORT || 5000;
+
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`API running on port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error("Startup failed:", error.message);
+    process.exit(1);
+  });
